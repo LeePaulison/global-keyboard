@@ -139,14 +139,20 @@ function App() {
       return;
     }
 
-    const character = processKey(e, buffer, setBuffer, setText);
+    if (selectedKeyboard === "korean") {
+      processKey(e, buffer, setBuffer, setText);
+    } else {
+      if (shiftKey === "ShiftLeft" || shiftKey === "ShiftRight") return;
+      const character = map[keyCode] ? shiftKey ? map[keyCode].shift : map[keyCode].normal : null;
 
-    func((prev) => {
-      if (character) {
-        return prev + character;
-      }
-      return prev;
-    });
+      func((prev) => {
+        if (character) {
+          return prev + character;
+        }
+        return prev;
+      });
+    }
+
   };
 
   const alignText = (keyboard) => {
