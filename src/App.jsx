@@ -218,6 +218,7 @@ function App() {
               </Form.Control>
             </Form.Field>
           </Form.Root>
+          <Text className="text-gray-900 font-bold">Select Keyboard:</Text>
           <DropdownMenu.Root open={open} onOpenChange={setOpen}>
             <DropdownMenu.Trigger>
               <KeyboardIcon width={32} height={32} className="text-gray-300" />
