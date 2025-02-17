@@ -1,8 +1,30 @@
-# React + Vite
+# Global Virtual Keyboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This project is a testbed for a custom virtual keyboard to handle multiple targetted foreign languages.
 
-Currently, two official plugins are available:
+###Korean Hangul IME
+**custom Hangul IME (Input Method Editor)** designed to correctly process **Korean character composition** in a React environment. It supports:
+- **Choseong (Initial consonants), Jungseong (Medial vowels), and Jongseong (Final consonants)**
+- **Multi-vowel (compound vowels) handling** (e.g., `ㅗ + ㅏ = ㅘ`)
+- **Real-time Hangul construction**
+- **Backspace handling** for stepwise deletion (`간` → `가` → `ㄱ`) - in-progress
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+✅ **Correct Hangul composition** following Korean orthographic rules  
+✅ **Handles two-part and three-part syllables** (`초성 + 중성`, `초성 + 중성 + 종성`)  
+✅ **Compound vowel merging** (`ㅗ + ㅏ = ㅘ`, `ㅜ + ㅓ = ㅝ`)  
+✅ **Space handling for multi-word input**  
+✅ **Backspace support** (removes 종성 first, then 중성, then 초성)  
+
+###Russian Cyrillic 
+
+### Arabic
+- not implemented
+
+## Installation
+Clone the repository and install dependencies:
+```sh
+git clone <repo-url>
+cd global-keyboard
+npm install
