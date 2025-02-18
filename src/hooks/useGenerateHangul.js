@@ -3,6 +3,25 @@ import { KoreanCharacterMap } from "../maps/korean";
 import { constructHangul } from "../lib/constructHangul";
 import { characterSetJamo } from "../lib/characterSetJamo";
 
+const deconstructHangul = (char) => {
+  const unicode = char.charCodeAt(0) - 0xac00;
+
+  // character is not a Hangul character - it is a Jamo character
+  if (unicode < 0 || unicode > 11171) {
+    return { initial: char, medial: "", final: "" };
+  }
+
+  const initialIndex = Math.floor(unicode / (21 * 28));
+  const medialIndex = Math.floor((unicode % (21 * 28)) / 28);
+  const finalIndex = unicode % 28;
+
+  const initial = characterSetJamo.CHOSEONG[initialIndex];
+  const medial = characterSetJamo.JUNGSEONG[medialIndex];
+  const final = characterSetJamo.JONGSEONG[finalIndex];
+
+  return { initial, medial, final };
+};
+
 export const useGenerateHangul = () => {
   const { CHOSEONG, JUNGSEONG, JONGSEONG, compoundVowelMap } = characterSetJamo;
 
@@ -111,5 +130,53 @@ export const useGenerateHangul = () => {
     [CHOSEONG, JUNGSEONG, JONGSEONG, compoundVowelMap]
   );
 
-  return { processJamo };
+  const processBackspace = useCallback(
+    (charToDelete) => {
+      console.log("Char to Delete: ", charToDelete);
+      const { initial, medial, final } = deconstructHangul(charToDelete);
+
+      console.log("Deconstructed: ", initial, medial, final);
+
+      if (final) {
+        console.log("Removing Final: ", final);
+        return {
+          process: "replace",
+          character: constructHangul(initial, medial, ""),
+        };
+      } else if (medial) {
+        console.log("Removing Medial: ", medial);
+
+        const compoundKey = Object.keys(compoundVowelMap).find((key) => compoundVowelMap[key] === medial);
+        if (compoundKey) {
+          const [first, second] = compoundKey.split("");
+          return {
+            process: "replace",
+            character: constructHangul(initial, first, ""),
+          };
+        }
+
+        return {
+          process: "replace",
+          character: initial,
+          resetBuffer: true,
+        };
+      } else if (initial) {
+        console.log("Removing Initial: ", initial);
+        return {
+          process: "replace",
+          character: "",
+          resetBuffer: true,
+        };
+      } else {
+        return {
+          process: "replace",
+          character: "",
+          resetBuffer: true,
+        };
+      }
+    },
+    [compoundVowelMap]
+  );
+
+  return { processJamo, processBackspace };
 };

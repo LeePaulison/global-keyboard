@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./App.css";
 import "@radix-ui/themes/styles.css";
 import { Box, Flex, Text, Theme } from "@radix-ui/themes";
@@ -21,9 +21,10 @@ function App() {
   const [fileName, setFileName] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [keymap, setKeymap] = useState({});
+  const cursorPosition = useRef(0);
 
   //IME's
-  const { processJamo } = useGenerateHangul();
+  const { processJamo, processBackspace } = useGenerateHangul();
   const [buffer, setBuffer] = useState({ initial: "", medial: "", final: "" });
   const { processCyrillic } = useGeneratedCyrillic();
 
@@ -126,18 +127,56 @@ function App() {
     }
   };
 
-  const mapKeyPressToCharacter = (e, map, func) => {
+  const mapKeyPressToCharacter = (e, content, func) => {
     e.preventDefault();
 
     const keyCode = e.code;
+    if (cursorPosition.current === undefined) {
+      cursorPosition.current = e.target.selectionStart;
+    }
 
-    if (keyCode === "Backspace") {
-      func((prev) => prev.slice(0, -1));
+    console.log("****Cursor Position: ", cursorPosition, " ****");
+
+    if (keyCode === "ArrowLeft" && cursorPosition.current > 0) {
+      cursorPosition.current = cursorPosition.current - 1;
       return;
     }
 
-    if (keyCode === "Delete") {
-      func(() => "");
+    if (keyCode === "ArrowRight" && cursorPosition.current < content.length) {
+      cursorPosition.current = cursorPosition.current + 1;
+      return;
+    }
+
+    if (keyCode === "Backspace") {
+      if (selectedKeyboard === "korean") {
+        if (cursorPosition.current === 0) return;
+
+        const charBeforeCursor = content[cursorPosition.current - 1];
+
+        console.log("Char Before Cursor: ", charBeforeCursor);
+
+        const result = processBackspace(charBeforeCursor);
+
+        console.log("Result: ", result);
+
+        if (result.process === "replace") {
+          func((prev) => prev.slice(0, cursorPosition.current - 1) + result.character + prev.slice(cursorPosition.current));
+        } else if (result.process === "delete") {
+          func((prev) => prev.slice(0, cursorPosition.current - 1) + prev.slice(cursorPosition.current));
+        }
+
+        if (result.resetBuffer) {
+          setBuffer({ initial: "", medial: "", final: "" });
+        }
+
+      } else if (selectedKeyboard === "russian") {
+        func((prev) => prev.slice(0, cursorPosition.current - 1) + prev.slice(cursorPosition.current));
+      }
+      return;
+    }
+
+    if (keyCode === "Delete" && cursorPosition.current < content.length) {
+      func((prev) => prev.slice(0, cursorPosition.current) + prev.slice(cursorPosition.current + 1));
       return;
     }
 
@@ -146,22 +185,21 @@ function App() {
 
       if (result) {
         if (result.process === "append") {
-          func((prev) => prev + result.character);
+          func((prev) => prev.slice(0, cursorPosition.current) + result.character + prev.slice(cursorPosition.current));
         } else if (result.process === "replace") {
-          func((prev) => prev.slice(0, -1) + result.character);
+          func((prev) => prev.slice(0, cursorPosition.current - 1) + result.character + prev.slice(cursorPosition.current));
         }
       }
+
+      return;
     } else if (selectedKeyboard === "russian") {
       const result = processCyrillic(e);
 
       if (result) {
-        func((prev) => {
-          if (result) {
-            return prev + result;
-          }
-          return prev;
-        });
+        func((prev) => prev.slice(0, cursorPosition.current) + result.character + prev.slice(cursorPosition.current));
       }
+
+      return;
     }
 
   };
@@ -213,9 +251,13 @@ function App() {
                   onKeyDown={(e) => {
                     mapKeyPressToCharacter(
                       e,
-                      activeKeyboardMap(selectedKeyboard),
+                      text,
                       setText
                     )
+                  }
+                  }
+                  onClick={(e) => {
+                    cursorPosition.current = e.target.selectionStart;
                   }
                   }
                   readOnly
