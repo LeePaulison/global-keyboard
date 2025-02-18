@@ -24,13 +24,12 @@ export const useGenerateHangul = () => {
       }
 
       let updatedBuffer = { ...buffer };
+      console.log("Buffer: ", buffer);
       const character = KoreanCharacterMap[keyCode]
         ? shiftKey
           ? KoreanCharacterMap[keyCode].shift
           : KoreanCharacterMap[keyCode].normal
         : null;
-
-      console.log("Jamo Character: ", character);
 
       if (character && CHOSEONG.includes(character)) {
         console.log("Choseong Character: ", character);
@@ -43,6 +42,11 @@ export const useGenerateHangul = () => {
           }
         } else {
           updatedBuffer.initial = character;
+          setBuffer(updatedBuffer);
+          return {
+            process: "append",
+            character: character,
+          };
         }
       } else if (JUNGSEONG.includes(character)) {
         console.log("Jungseong Character: ", character);
@@ -66,6 +70,7 @@ export const useGenerateHangul = () => {
         }
       }
 
+      console.log("Updated Buffer: ", updatedBuffer);
       setBuffer(updatedBuffer);
 
       let hangul = null;
@@ -95,8 +100,10 @@ export const useGenerateHangul = () => {
             character: hangul,
           };
         }
+
+        console.log("Two Pieces: ", hangul);
         return {
-          process: "append",
+          process: "replace",
           character: hangul,
         };
       }
