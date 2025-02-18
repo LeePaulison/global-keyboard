@@ -10,6 +10,7 @@ import { RussianCharacterMap } from "./maps/russian";
 
 // IME's - Input Method Editors
 import { useGenerateHangul } from "./hooks/useGenerateHangul";
+import { useGeneratedCyrillic } from "./hooks/useGeneratedCyrillic";
 
 function App() {
   const [text, setText] = useState("Hello World!");
@@ -22,8 +23,10 @@ function App() {
   const [keymap, setKeymap] = useState({});
 
   //IME's
-  const { processKey } = useGenerateHangul();
+  const { processJamo } = useGenerateHangul();
   const [buffer, setBuffer] = useState({ initial: "", medial: "", final: "" });
+  const { processCyrillic } = useGeneratedCyrillic();
+
 
   console.log("fileName", fileName);
   // console.log("fileContent", fileContent);
@@ -127,7 +130,6 @@ function App() {
     e.preventDefault();
 
     const keyCode = e.code;
-    const shiftKey = e.shiftKey;
 
     if (keyCode === "Backspace") {
       func((prev) => prev.slice(0, -1));
@@ -140,17 +142,26 @@ function App() {
     }
 
     if (selectedKeyboard === "korean") {
-      processKey(e, buffer, setBuffer, setText);
-    } else {
-      if (shiftKey === "ShiftLeft" || shiftKey === "ShiftRight") return;
-      const character = map[keyCode] ? shiftKey ? map[keyCode].shift : map[keyCode].normal : null;
+      const result = processJamo(e, buffer, setBuffer, setText);
 
-      func((prev) => {
-        if (character) {
-          return prev + character;
+      if (result) {
+        if (result.process === "append") {
+          func((prev) => prev + result.character);
+        } else if (result.process === "replace") {
+          func((prev) => prev.slice(0, -1) + result.character);
         }
-        return prev;
-      });
+      }
+    } else if (selectedKeyboard === "russian") {
+      const result = processCyrillic(e);
+
+      if (result) {
+        func((prev) => {
+          if (result) {
+            return prev + result;
+          }
+          return prev;
+        });
+      }
     }
 
   };

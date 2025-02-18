@@ -6,7 +6,7 @@ import { characterSetJamo } from "../lib/characterSetJamo";
 export const useGenerateHangul = () => {
   const { CHOSEONG, JUNGSEONG, JONGSEONG, compoundVowelMap } = characterSetJamo;
 
-  const processKey = useCallback(
+  const processJamo = useCallback(
     (event, buffer, setBuffer, setText) => {
       event.preventDefault();
 
@@ -75,23 +75,34 @@ export const useGenerateHangul = () => {
         hangul = constructHangul(updatedBuffer.initial, updatedBuffer.medial, updatedBuffer.final);
 
         if (keyCode === "Space" && hangul) {
-          setText((prev) => prev + " ");
           setBuffer({ initial: "", medial: "", final: "" });
           hangul = null;
+          return {
+            process: "append",
+            character: " ",
+          };
         } else if (updatedBuffer.final) {
-          setText((prev) => prev.slice(0, -1) + hangul);
           setBuffer({ initial: "", medial: "", final: "" });
+          return {
+            process: "replace",
+            character: hangul,
+          };
         } else if (multiVowel) {
-          setText((prev) => prev.slice(0, -1) + hangul);
           setBuffer({ initial: "", medial: "", final: "" });
           multiVowel = false;
-        } else {
-          setText((prev) => prev + hangul);
+          return {
+            process: "replace",
+            character: hangul,
+          };
         }
+        return {
+          process: "append",
+          character: hangul,
+        };
       }
     },
     [CHOSEONG, JUNGSEONG, JONGSEONG, compoundVowelMap]
   );
 
-  return { processKey };
+  return { processJamo };
 };
