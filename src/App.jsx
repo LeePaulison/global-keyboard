@@ -125,29 +125,27 @@ function App() {
 
   const mapKeyPressToCharacter = (e, content, func) => {
     e.preventDefault();
-    let textArea = null;
-    if (textAreaRef.current) textArea = textAreaRef.current;
-    const selectionStart = textArea.selectionStart;
+    const selectionStart = e.target.selectionStart;
 
     const keyCode = e.code;
 
 
-    console.log("****Cursor Position: ", cursorPosition, " ****");
+    console.log("****Cursor Position: ", selectionStart, " ****");
 
-    if (keyCode === "ArrowLeft" && cursorPosition.current > 0) {
-      cursorPosition.current = cursorPosition.current - 1;
+    if (keyCode === "ArrowLeft" && selectionStart > 0) {
+      moveCursorBackwardOne(e.target);
       return;
     }
 
-    if (keyCode === "ArrowRight" && cursorPosition.current < content.length) {
-      cursorPosition.current = cursorPosition.current + 1;
+    if (keyCode === "ArrowRight" && selectionStart < content.length) {
+      moveCursorForwardOne(e.target);
       return;
     }
 
     if (keyCode === "Backspace") {
       cursorPosition.current = selectionStart - 1;
       if (selectedKeyboard === "korean") {
-        if (cursorPosition.current === 0) return;
+        if (selectionStart === 0) return;
 
         const charBeforeCursor = content[selectionStart - 1];
 
@@ -260,9 +258,11 @@ function App() {
                   }
                   }
                   onClick={(e) => {
-                    cursorPosition.current = e.target.selectionStart;
-                  }
-                  }
+                    console.log("selectionStart", e.target.selectionStart);
+                    console.log("selectionEnd", e.target.selectionEnd);
+                    console.log("getCursorPosition", getCursorPosition(e.target));
+                  }}
+
                   readOnly
                   rows={10}
                   dir={selectedKeyboard === "arabic" ? "rtl" : "ltr"}

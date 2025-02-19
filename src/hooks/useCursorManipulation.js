@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 export const useCursorManipulation = () => {
-  const setCurorPosition = useCallback((elem, position) => {
+  const setCursorPosition = useCallback((elem, position) => {
     if (!elem) return;
 
     elem.selectionStart = position;
@@ -45,9 +45,9 @@ export const useCursorManipulation = () => {
       if (!elem) return;
 
       const position = getCursorPosition(elem);
-      setCurorPosition(elem, position + 1);
+      setCursorPosition(elem, position + 1);
     },
-    [getCursorPosition, setCurorPosition]
+    [getCursorPosition, setCursorPosition]
   );
 
   const moveCursorBackwardOne = useCallback(
@@ -55,9 +55,9 @@ export const useCursorManipulation = () => {
       if (!elem) return;
 
       const position = getCursorPosition(elem);
-      setCurorPosition(elem, position - 1);
+      setCursorPosition(elem, position - 1);
     },
-    [getCursorPosition, setCurorPosition]
+    [getCursorPosition, setCursorPosition]
   );
 
   const moveCursorForwardOneWord = useCallback(
@@ -75,9 +75,9 @@ export const useCursorManipulation = () => {
         position++;
       }
 
-      setCurorPosition(elem, position);
+      setCursorPosition(elem, position);
     },
-    [getCursorPosition, setCurorPosition]
+    [getCursorPosition, setCursorPosition]
   );
 
   const moveCursorBackwardOneWord = useCallback(
@@ -95,13 +95,13 @@ export const useCursorManipulation = () => {
         position--;
       }
 
-      setCurorPosition(elem, position);
+      setCursorPosition(elem, position);
     },
-    [getCursorPosition, setCurorPosition]
+    [getCursorPosition, setCursorPosition]
   );
 
   return {
-    setCurorPosition,
+    setCursorPosition,
     getCursorPosition,
     moveCursorToPosition,
     moveCursorToHome,
