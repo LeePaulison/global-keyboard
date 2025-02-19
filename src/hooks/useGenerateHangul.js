@@ -4,6 +4,8 @@ import { constructHangul } from "../lib/constructHangul";
 import { characterSetJamo } from "../lib/characterSetJamo";
 
 const deconstructHangul = (char) => {
+  console.log("Deconstructing: ", char);
+  // character is a Hangul character
   const unicode = char.charCodeAt(0) - 0xac00;
 
   // character is not a Hangul character - it is a Jamo character

@@ -4,13 +4,12 @@ import "@radix-ui/themes/styles.css";
 import { Box, Flex, Text, Theme } from "@radix-ui/themes";
 import { Form, DropdownMenu } from "radix-ui";
 import { KeyboardIcon } from "@radix-ui/react-icons";
-import { ArabicCharacterMap } from "./maps/arabic";
-import { KoreanCharacterMap } from "./maps/korean";
-import { RussianCharacterMap } from "./maps/russian";
 
 // IME's - Input Method Editors
 import { useGenerateHangul } from "./hooks/useGenerateHangul";
 import { useGeneratedCyrillic } from "./hooks/useGeneratedCyrillic";
+// Cursor Manipulation
+import { useCursorManipulation } from "./hooks/useCursorManipulation";
 
 function App() {
   const [text, setText] = useState("Hello World!");
@@ -21,12 +20,15 @@ function App() {
   const [fileName, setFileName] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [keymap, setKeymap] = useState({});
+  const textAreaRef = useRef(null);
   const cursorPosition = useRef(0);
 
   //IME's
   const { processJamo, processBackspace } = useGenerateHangul();
   const [buffer, setBuffer] = useState({ initial: "", medial: "", final: "" });
   const { processCyrillic } = useGeneratedCyrillic();
+  // Cursor Manipulation
+  const { setCursorPosition, getCursorPosition, moveCursorToPosition, moveCursorToHome, moveCursorToEnd, moveCursorForwardOne, moveCursorBackwardOne } = useCursorManipulation();
 
 
   console.log("fileName", fileName);
@@ -104,6 +106,13 @@ function App() {
     reader.readAsText(file);
   };
 
+  const handleCursorPosition = (e) => {
+    e.preventDefault();
+    const textArea = e.target;
+    const selectionStart = textArea.selectionStart;
+    cursorPosition.current = selectionStart;
+  };
+
   const handleKeyboardChange = (e, keyboard, func) => {
     e.preventDefault();
     func((prev) => {
@@ -114,26 +123,14 @@ function App() {
     });
   };
 
-  const activeKeyboardMap = (keyboard) => {
-    switch (keyboard) {
-      case "arabic":
-        return ArabicCharacterMap;
-      case "korean":
-        return KoreanCharacterMap;
-      case "russian":
-        return RussianCharacterMap;
-      default:
-        return ArabicCharacterMap;
-    }
-  };
-
   const mapKeyPressToCharacter = (e, content, func) => {
     e.preventDefault();
+    let textArea = null;
+    if (textAreaRef.current) textArea = textAreaRef.current;
+    const selectionStart = textArea.selectionStart;
 
     const keyCode = e.code;
-    if (cursorPosition.current === undefined) {
-      cursorPosition.current = e.target.selectionStart;
-    }
+
 
     console.log("****Cursor Position: ", cursorPosition, " ****");
 
@@ -148,10 +145,11 @@ function App() {
     }
 
     if (keyCode === "Backspace") {
+      cursorPosition.current = selectionStart - 1;
       if (selectedKeyboard === "korean") {
         if (cursorPosition.current === 0) return;
 
-        const charBeforeCursor = content[cursorPosition.current - 1];
+        const charBeforeCursor = content[selectionStart - 1];
 
         console.log("Char Before Cursor: ", charBeforeCursor);
 
@@ -160,9 +158,9 @@ function App() {
         console.log("Result: ", result);
 
         if (result.process === "replace") {
-          func((prev) => prev.slice(0, cursorPosition.current - 1) + result.character + prev.slice(cursorPosition.current));
+          func((prev) => prev.slice(0, selectionStart - 1) + result.character + prev.slice(selectionStart));
         } else if (result.process === "delete") {
-          func((prev) => prev.slice(0, cursorPosition.current - 1) + prev.slice(cursorPosition.current));
+          func((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
         }
 
         if (result.resetBuffer) {
@@ -170,13 +168,15 @@ function App() {
         }
 
       } else if (selectedKeyboard === "russian") {
-        func((prev) => prev.slice(0, cursorPosition.current - 1) + prev.slice(cursorPosition.current));
+        func((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
+        cursorPosition.current = selectionStart - 1;
       }
       return;
     }
 
-    if (keyCode === "Delete" && cursorPosition.current < content.length) {
-      func((prev) => prev.slice(0, cursorPosition.current) + prev.slice(cursorPosition.current + 1));
+    if (keyCode === "Delete" && selectionStart < content.length) {
+      func((prev) => prev.slice(0, selectionStart) + prev.slice(selectionStart + 1));
+      cursorPosition.current = selectionStart;
       return;
     }
 
@@ -185,9 +185,11 @@ function App() {
 
       if (result) {
         if (result.process === "append") {
-          func((prev) => prev.slice(0, cursorPosition.current) + result.character + prev.slice(cursorPosition.current));
+          func((prev) => prev.slice(0, selectionStart) + result.character + prev.slice(selectionStart));
+          cursorPosition.current = selectionStart + 1;
         } else if (result.process === "replace") {
-          func((prev) => prev.slice(0, cursorPosition.current - 1) + result.character + prev.slice(cursorPosition.current));
+          func((prev) => prev.slice(0, selectionStart - 1) + result.character + prev.slice(selectionStart));
+          cursorPosition.current = selectionStart;
         }
       }
 
@@ -196,9 +198,9 @@ function App() {
       const result = processCyrillic(e);
 
       if (result) {
-        func((prev) => prev.slice(0, cursorPosition.current) + result.character + prev.slice(cursorPosition.current));
+        func((prev) => prev.slice(0, selectionStart) + result.character + prev.slice(selectionStart));
       }
-
+      cursorPosition.current = selectionStart + 1;
       return;
     }
 
@@ -247,6 +249,7 @@ function App() {
               <Form.Label>Text Entry: </Form.Label>
               <Form.Control asChild>
                 <textarea
+                  ref={textAreaRef}
                   value={text}
                   onKeyDown={(e) => {
                     mapKeyPressToCharacter(
@@ -263,7 +266,7 @@ function App() {
                   readOnly
                   rows={10}
                   dir={selectedKeyboard === "arabic" ? "rtl" : "ltr"}
-                  className={`border border-gray-500 rounded-md p-2 w-full ${alignText(
+                  className={`caret-black border border-gray-500 rounded-md p-2 w-full ${alignText(
                     selectedKeyboard
                   )}`}
                   id="text-entry"
