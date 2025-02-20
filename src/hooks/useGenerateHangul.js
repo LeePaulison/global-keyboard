@@ -4,7 +4,6 @@ import { constructHangul } from "../lib/constructHangul";
 import { characterSetJamo } from "../lib/characterSetJamo";
 
 const deconstructHangul = (char) => {
-  console.log("Deconstructing: ", char);
   // character is a Hangul character
   const unicode = char.charCodeAt(0) - 0xac00;
 
@@ -45,7 +44,6 @@ export const useGenerateHangul = () => {
       }
 
       let updatedBuffer = { ...buffer };
-      console.log("Buffer: ", buffer);
       const character = KoreanCharacterMap[keyCode]
         ? shiftKey
           ? KoreanCharacterMap[keyCode].shift
@@ -53,7 +51,6 @@ export const useGenerateHangul = () => {
         : null;
 
       if (character && CHOSEONG.includes(character)) {
-        console.log("Choseong Character: ", character);
         if (buffer.initial && buffer.medial) {
           if (!buffer.final && JONGSEONG.includes(character)) {
             updatedBuffer.final = character;
@@ -70,12 +67,9 @@ export const useGenerateHangul = () => {
           };
         }
       } else if (JUNGSEONG.includes(character)) {
-        console.log("Jungseong Character: ", character);
         if (buffer.initial && buffer.medial) {
           let newMedial = updatedBuffer.medial;
-          console.log("Compound Vowel: ", character);
           const compoundKey = updatedBuffer.medial + character;
-          console.log("Compound Key: ", compoundKey);
           if (compoundVowelMap[compoundKey]) {
             newMedial = compoundVowelMap[compoundKey];
             updatedBuffer.medial = newMedial;
@@ -85,19 +79,15 @@ export const useGenerateHangul = () => {
           updatedBuffer.medial = character;
         }
       } else if (JONGSEONG.includes(character)) {
-        console.log("Jongseong Character: ", character);
         if (buffer.initial && buffer.medial) {
           updatedBuffer.final = character;
         }
       }
 
-      console.log("Updated Buffer: ", updatedBuffer);
       setBuffer(updatedBuffer);
 
       let hangul = null;
-      console.log("Hangul: ", hangul);
       if (updatedBuffer.initial && updatedBuffer.medial) {
-        console.log(updatedBuffer.initial, updatedBuffer.medial, updatedBuffer.final);
         hangul = constructHangul(updatedBuffer.initial, updatedBuffer.medial, updatedBuffer.final);
 
         if (keyCode === "Space" && hangul) {
@@ -122,7 +112,6 @@ export const useGenerateHangul = () => {
           };
         }
 
-        console.log("Two Pieces: ", hangul);
         return {
           process: "replace",
           character: hangul,
@@ -134,20 +123,14 @@ export const useGenerateHangul = () => {
 
   const processBackspace = useCallback(
     (charToDelete) => {
-      console.log("Char to Delete: ", charToDelete);
       const { initial, medial, final } = deconstructHangul(charToDelete);
 
-      console.log("Deconstructed: ", initial, medial, final);
-
       if (final) {
-        console.log("Removing Final: ", final);
         return {
           process: "replace",
           character: constructHangul(initial, medial, ""),
         };
       } else if (medial) {
-        console.log("Removing Medial: ", medial);
-
         const compoundKey = Object.keys(compoundVowelMap).find((key) => compoundVowelMap[key] === medial);
         if (compoundKey) {
           const [first, second] = compoundKey.split("");
@@ -163,7 +146,6 @@ export const useGenerateHangul = () => {
           resetBuffer: true,
         };
       } else if (initial) {
-        console.log("Removing Initial: ", initial);
         return {
           process: "replace",
           character: "",

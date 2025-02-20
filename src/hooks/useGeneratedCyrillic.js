@@ -9,8 +9,6 @@ export const useGeneratedCyrillic = () => {
     const keyCode = e.code;
     const shiftKey = e.shiftKey;
 
-    console.log("Key Code: ", keyCode);
-
     if (keyCode === "ShiftLeft" || keyCode === "ShiftRight") {
       return;
     }

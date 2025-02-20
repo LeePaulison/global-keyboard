@@ -8,12 +8,13 @@ import { KeyboardIcon } from "@radix-ui/react-icons";
 // IME's - Input Method Editors
 import { useGenerateHangul } from "./hooks/useGenerateHangul";
 import { useGeneratedCyrillic } from "./hooks/useGeneratedCyrillic";
+import { useGeneratedArabic } from "./hooks/useGeneratedArabic";
 // Cursor Manipulation
 import { useCursorManipulation } from "./hooks/useCursorManipulation";
 
 function App() {
   const [text, setText] = useState("Hello World!");
-  const [selectedKeyboard, setSelectedKeyboard] = useState("korean");
+  const [selectedKeyboard, setSelectedKeyboard] = useState("arabic");
   const [open, setOpen] = useState(false);
 
   // temporary state for debugging
@@ -25,26 +26,18 @@ function App() {
 
   //IME's
   const { processJamo, processBackspace } = useGenerateHangul();
-  const [buffer, setBuffer] = useState({ initial: "", medial: "", final: "" });
+  const [buffer, setBuffer] = useState({ isolated: "", initial: "", medial: "", final: "", shift: "" });
   const { processCyrillic } = useGeneratedCyrillic();
+  const { processArabic } = useGeneratedArabic();
   // Cursor Manipulation
   const { setCursorPosition, getCursorPosition, moveCursorToPosition, moveCursorToHome, moveCursorToEnd, moveCursorForwardOne, moveCursorBackwardOne } = useCursorManipulation();
 
 
-  console.log("fileName", fileName);
-  // console.log("fileContent", fileContent);
-  console.log("fileError", fileError);
-  console.log("keymap", keymap);
-
   const parseXMLFile = (fileContents) => {
     if (!fileContents) return;
 
-    console.log('I am parsing the file');
-
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(fileContents, "text/xml");
-
-    console.log("xmlDoc", xmlDoc);
 
     const layout = {};
     const keys = xmlDoc.getElementsByTagName("PK");
@@ -86,11 +79,8 @@ function App() {
     reader.onload = () => {
       const content = reader.result;
 
-      console.log("Type: ", file.type);
-      console.log("Content: ", content);
-
       const mapJson = parseXMLFile(content);
-      console.log("Map JSON: ", mapJson);
+
       storage((prev) => {
         if (prev !== mapJson) {
           return mapJson;
@@ -106,13 +96,6 @@ function App() {
     reader.readAsText(file);
   };
 
-  const handleCursorPosition = (e) => {
-    e.preventDefault();
-    const textArea = e.target;
-    const selectionStart = textArea.selectionStart;
-    cursorPosition.current = selectionStart;
-  };
-
   const handleKeyboardChange = (e, keyboard, func) => {
     e.preventDefault();
     func((prev) => {
@@ -125,23 +108,29 @@ function App() {
 
   const mapKeyPressToCharacter = (e, content, func) => {
     e.preventDefault();
-    const selectionStart = e.target.selectionStart;
+
+    const { selectionStart, selectionEnd } = e.target;
 
     const keyCode = e.code;
 
-
-    console.log("****Cursor Position: ", selectionStart, " ****");
-
+    // Arrow keys
     if (keyCode === "ArrowLeft" && selectionStart > 0) {
-      moveCursorBackwardOne(e.target);
+      moveCursorBackwardOne(textAreaRef.current);
       return;
     }
 
     if (keyCode === "ArrowRight" && selectionStart < content.length) {
-      moveCursorForwardOne(e.target);
+      moveCursorForwardOne(textAreaRef.current);
       return;
     }
 
+    if (keyCode === "Space") {
+      func((prev) => prev.slice(0, selectionStart) + " " + prev.slice(selectionStart));
+      textAreaRef.current = selectionStart + 1;
+      return;
+    }
+
+    // Backspace key
     if (keyCode === "Backspace") {
       cursorPosition.current = selectionStart - 1;
       if (selectedKeyboard === "korean") {
@@ -149,16 +138,21 @@ function App() {
 
         const charBeforeCursor = content[selectionStart - 1];
 
-        console.log("Char Before Cursor: ", charBeforeCursor);
-
         const result = processBackspace(charBeforeCursor);
-
-        console.log("Result: ", result);
 
         if (result.process === "replace") {
           func((prev) => prev.slice(0, selectionStart - 1) + result.character + prev.slice(selectionStart));
+
+          requestAnimationFrame(() => {
+            setCursorPosition(textAreaRef.current, selectionStart);
+          });
+
         } else if (result.process === "delete") {
           func((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
+
+          requestAnimationFrame(() => {
+            moveCursorBackwardOne(textAreaRef.current);
+          });
         }
 
         if (result.resetBuffer) {
@@ -168,26 +162,43 @@ function App() {
       } else if (selectedKeyboard === "russian") {
         func((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
         cursorPosition.current = selectionStart - 1;
+      } else if (selectedKeyboard === "arabic") {
+        func((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
+        requestAnimationFrame(() => {
+          setCursorPosition(textAreaRef.current, selectionStart - 1);
+        }
+        );
       }
       return;
     }
 
+    // Delete key
     if (keyCode === "Delete" && selectionStart < content.length) {
       func((prev) => prev.slice(0, selectionStart) + prev.slice(selectionStart + 1));
-      cursorPosition.current = selectionStart;
+      requestAnimationFrame(() => {
+        setCursorPosition(textAreaRef.current, selectionStart);
+      }
+      );
       return;
     }
 
+    // IME's
     if (selectedKeyboard === "korean") {
-      const result = processJamo(e, buffer, setBuffer, setText);
+      const result = processJamo(e, buffer, setBuffer);
 
       if (result) {
         if (result.process === "append") {
           func((prev) => prev.slice(0, selectionStart) + result.character + prev.slice(selectionStart));
-          cursorPosition.current = selectionStart + 1;
+          requestAnimationFrame(() => {
+            setCursorPosition(textAreaRef.current, selectionStart + 1);
+          }
+          );
         } else if (result.process === "replace") {
           func((prev) => prev.slice(0, selectionStart - 1) + result.character + prev.slice(selectionStart));
-          cursorPosition.current = selectionStart;
+          requestAnimationFrame(() => {
+            setCursorPosition(textAreaRef.current, selectionStart);
+          }
+          );
         }
       }
 
@@ -198,10 +209,18 @@ function App() {
       if (result) {
         func((prev) => prev.slice(0, selectionStart) + result.character + prev.slice(selectionStart));
       }
-      cursorPosition.current = selectionStart + 1;
+      requestAnimationFrame(() => {
+        setCursorPosition(textAreaRef.current, selectionStart + 1);
+      }
+      );
       return;
-    }
+    } else if (selectedKeyboard === "arabic") {
+      const result = processArabic(e, buffer, setBuffer);
 
+      console.log("Result", result);
+
+      return;
+    };
   };
 
   const alignText = (keyboard) => {

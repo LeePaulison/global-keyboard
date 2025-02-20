@@ -2,10 +2,6 @@ import { characterSetJamo } from "./characterSetJamo";
 export const constructHangul = (initial, medial, final = "") => {
   const { CHOSEONG, JUNGSEONG, JONGSEONG } = characterSetJamo;
 
-  console.log("Initial: ", initial);
-  console.log("Medial: ", medial);
-  console.log("Final: ", final);
-
   const initialIndex = CHOSEONG.indexOf(initial);
   const medialIndex = JUNGSEONG.indexOf(medial);
   const finalIndex = JONGSEONG.indexOf(final);
