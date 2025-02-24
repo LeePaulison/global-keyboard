@@ -19,6 +19,9 @@ export const useGeneratedCyrillic = () => {
         : RussianCharacterMap[keyCode].normal
       : null;
 
+    console.log("Generate Cyrillic - Key Pressed", keyCode);
+    console.log("Character", character);
+
     if (character) {
       return character;
     }

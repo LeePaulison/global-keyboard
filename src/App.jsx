@@ -13,7 +13,7 @@ import { useGeneratedArabic } from "./hooks/useGeneratedArabic";
 import { useCursorManipulation } from "./hooks/useCursorManipulation";
 
 function App() {
-  const [text, setText] = useState("Hello World!");
+  const [text, setText] = useState("");
   const [selectedKeyboard, setSelectedKeyboard] = useState("arabic");
   const [open, setOpen] = useState(false);
 
@@ -206,8 +206,10 @@ function App() {
     } else if (selectedKeyboard === "russian") {
       const result = processCyrillic(e);
 
+      console.log("Result: ", result);
+
       if (result) {
-        func((prev) => prev.slice(0, selectionStart) + result.character + prev.slice(selectionStart));
+        func((prev) => prev.slice(0, selectionStart) + result + prev.slice(selectionStart));
       }
       requestAnimationFrame(() => {
         setCursorPosition(textAreaRef.current, selectionStart + 1);
@@ -215,9 +217,35 @@ function App() {
       );
       return;
     } else if (selectedKeyboard === "arabic") {
-      const result = processArabic(e, buffer, setBuffer);
+      const resultsArray = processArabic(e, buffer, setBuffer);
 
-      console.log("Result", result);
+      if (resultsArray) {
+        console.log("Selection Start: ", selectionStart);
+        const replaceCount = resultsArray.filter((result) => result.process === "replace").length;
+        console.log("Replace Count: ", replaceCount);
+        let currentSelectionStart = selectionStart + replaceCount;
+        console.log("Current Selection Start: ", currentSelectionStart);
+
+
+
+        resultsArray.forEach((result) => {
+          if (result.process === "replace") {
+            // ✅ Fix: Adjust cursor correctly after replacing
+            func((prev) => prev.slice(0, currentSelectionStart) + result.character + prev.slice(currentSelectionStart + 1));
+            currentSelectionStart -= 1;
+            console.log("Replaced Current Selection Start: ", currentSelectionStart);
+          } else if (result.process === "append") {
+            // ✅ Fix: Ensure append happens AFTER the replaced character
+            func((prev) => prev.slice(0, currentSelectionStart) + result.character + prev.slice(currentSelectionStart));
+            // currentSelectionStart -= result.character.length; // ✅ Adjust cursor correctly after appending
+            console.log("Appended Current Selection Start: ", currentSelectionStart);
+          }
+        });
+        requestAnimationFrame(() => {
+          setCursorPosition(textAreaRef.current, currentSelectionStart);
+          console.log("Cursor Set to: ", currentSelectionStart);
+        });
+      };
 
       return;
     };
@@ -251,13 +279,13 @@ function App() {
             <Text className="min-h-[1.5rem]">{text}</Text>
           </Flex>
           <Form.Root className="w-full">
-            <Form.Field name="file-upload">
+            {/*             <Form.Field name="file-upload">
               <Form.Label>Keyboard Layout .XLM File Upload: </Form.Label>
               <Form.Control asChild>
                 <input type="file" accept=".xml" onChange={(e) => handleFileChange(e, setKeymap)} className="border border-gray-500 rounded-md p-2" />
               </Form.Control>
             </Form.Field>
-            <Text className="text-gray-900 font-bold">
+ */}            <Text className="text-gray-900 font-bold">
               Current Keyboard:{" "}
               {selectedKeyboard.charAt(0).toUpperCase() +
                 selectedKeyboard.slice(1)}
@@ -277,11 +305,9 @@ function App() {
                   }
                   }
                   onClick={(e) => {
-                    console.log("selectionStart", e.target.selectionStart);
-                    console.log("selectionEnd", e.target.selectionEnd);
-                    console.log("getCursorPosition", getCursorPosition(e.target));
+                    const cursorPos = getCursorPosition(e.target)
+                    console.log("Clicked Cursor Position: ", cursorPos);
                   }}
-
                   readOnly
                   rows={10}
                   dir={selectedKeyboard === "arabic" ? "rtl" : "ltr"}
