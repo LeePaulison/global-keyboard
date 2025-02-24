@@ -13,6 +13,10 @@ export const useGeneratedArabic = () => {
       return;
     }
 
+    if (keyCode === "ArrowLeft" || keyCode === "ArrowRight") {
+      return;
+    }
+
     let updatedBuffer = { ...buffer };
     let character = "";
     let triggerReset = false;
@@ -34,14 +38,6 @@ export const useGeneratedArabic = () => {
           isolated: "",
           isolatedKey: "",
           initialKey: buffer.isolatedKey,
-          finalKey: keyCode,
-        };
-      } else if (buffer.medial !== "") {
-        updatedBuffer = {
-          ...buffer,
-          initial: ArabicCharacterMap[buffer.initialKey].initial,
-          medial: ArabicCharacterMap[buffer.medialKey].medial,
-          final: ArabicCharacterMap[keyCode].final,
           finalKey: keyCode,
         };
       } else if (buffer.final !== "") {
@@ -117,7 +113,6 @@ export const useGeneratedArabic = () => {
         initial: "",
         medial: "",
         final: "",
-        breakerFound: false,
       });
     }
 

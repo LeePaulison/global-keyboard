@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./App.css";
 import "@radix-ui/themes/styles.css";
 import { Box, Flex, Text, Theme } from "@radix-ui/themes";
@@ -226,21 +226,17 @@ function App() {
         let currentSelectionStart = selectionStart + replaceCount;
         console.log("Current Selection Start: ", currentSelectionStart);
 
-
-
         resultsArray.forEach((result) => {
           if (result.process === "replace") {
-            // ✅ Fix: Adjust cursor correctly after replacing
             func((prev) => prev.slice(0, currentSelectionStart) + result.character + prev.slice(currentSelectionStart + 1));
             currentSelectionStart -= 1;
             console.log("Replaced Current Selection Start: ", currentSelectionStart);
           } else if (result.process === "append") {
-            // ✅ Fix: Ensure append happens AFTER the replaced character
             func((prev) => prev.slice(0, currentSelectionStart) + result.character + prev.slice(currentSelectionStart));
-            // currentSelectionStart -= result.character.length; // ✅ Adjust cursor correctly after appending
             console.log("Appended Current Selection Start: ", currentSelectionStart);
           }
         });
+
         requestAnimationFrame(() => {
           setCursorPosition(textAreaRef.current, currentSelectionStart);
           console.log("Cursor Set to: ", currentSelectionStart);
@@ -263,6 +259,10 @@ function App() {
         return "text-left";
     }
   };
+
+  useEffect(() => {
+    console.log([...text].map((char) => char.charCodeAt(0).toString(16)));
+  }, [text]);
 
   return (
     <Theme>
@@ -308,12 +308,14 @@ function App() {
                     const cursorPos = getCursorPosition(e.target)
                     console.log("Clicked Cursor Position: ", cursorPos);
                   }}
+                  onChange={(e) => console.log([e.target.value.map((char) => char.charCodeAt(0).toString(16))])}
                   readOnly
                   rows={10}
                   dir={selectedKeyboard === "arabic" ? "rtl" : "ltr"}
                   className={`caret-black border border-gray-500 rounded-md p-2 w-full ${alignText(
                     selectedKeyboard
                   )}`}
+                  style={selectedKeyboard === "arabic" ? { fontFeatureSettings: '"liga" 0, "dlig" 0, "calt" 0' } : {}}
                   id="text-entry"
                 />
               </Form.Control>
